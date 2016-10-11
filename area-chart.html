@@ -18,13 +18,13 @@ body {
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script>
 
-var format = d3.time.format("%Y");
+var format = d3.time.format("%m/%d/%y");
 
 var margin = {top: 20, right: 30, bottom: 30, left: 40},
     width = 960 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
 
-var x = d3.time.scale()
+var x = d3.scale.linear()
     .range([0, width]);
 
 var y = d3.scale.linear()
@@ -35,8 +35,7 @@ var z = d3.scale.category20c();
 
 var xAxis = d3.svg.axis()
     .scale(x)
-    .orient("bottom")
-    .ticks(d3.time.years);
+    .orient("bottom");
 
 var yAxis = d3.svg.axis()
     .scale(y)
@@ -66,16 +65,17 @@ var svg = d3.select("body").append("svg")
 d3.csv("data.csv", function(error, data) {
   if (error) throw error;
 
-  console.log(data);
 
   data.forEach(function(d) {
-    d.date = format.parse(d.date);
+    d.date = d.date.split('/')[2]
     d.value = +d.value;
   });
 
   var layers = stack(nest.entries(data));
 
-  x.domain(d3.extent(data, function(d) { return d.date; }));
+  x.domain(d3.extent(data, function(d) {
+    return d.date;
+  }));
   y.domain([0, d3.max(data, function(d) { return d.y0 + d.y; })]);
 
   svg.selectAll(".layer")
