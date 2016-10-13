@@ -19,14 +19,6 @@ body {
 <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 <script>
 
-var getUniqueYears = function(data) {
-  var years = [];
-
-  data.forEach(function(d) {
-    var year = d.date;
-    debugger;
-  });
-};
 
 var format = d3.time.format("%m/%d/%Y");
 
@@ -56,11 +48,23 @@ var yAxis = d3.svg.axis()
 var stack = d3.layout.stack()
     .offset("zero")
     .values(function(d) { return d.values; })
+    // .order(function(d, i) {
+    //
+    //
+    //   // console.log(_.map(d, function(x, i) {
+    //   //   return d3.range(x[x.length - 1][1]);
+    //   // }));
+    //
+    //   // console.log(y);
+    //
+    //   // return d3.range(d[2][2][1]);
+    // })
     .x(function(d) { return d.date; })
-    .y(function(d) { return d.quantity; });
+    .y(function(d) { return d.quantity; })
 
 var nest = d3.nest()
     .key(function(d) { return d.name; });
+
 
 var area = d3.svg.area()
     .interpolate("linear")
@@ -86,9 +90,9 @@ d3.json("data.json", function(error, data) {
 
   var layers = stack(nest.entries(municipalities));
 
-
   x.domain(d3.extent(municipalities, function(d) { return d.date; }));
   y.domain([0, d3.max(municipalities, function(d) { return d.y0 + d.y; })]);
+
 
   var layersFrame = svg.selectAll('.layer-frame')
     .data(layers)
@@ -101,8 +105,11 @@ d3.json("data.json", function(error, data) {
     .style("fill", function(d, i) { return z(i); });
 
   layersFrame.append('text')
-    .attr("transform", function(d, i) { return "translate(" + x(d.values[i].date) + "," + y(d.values[i].y0 + d.values[i].y / 2) + ")"; })
-    .attr("x", -6)
+    .attr("transform", function(d, i) {
+      var lastIndex = d.values.length - 1;
+      return "translate(" + x(d.values[lastIndex].date) + "," + y(d.values[lastIndex].y0 + d.values[lastIndex].y / 2) + ")";
+    })
+    .attr("x", 6)
     .attr("dy", ".35em")
     .text(function(d) { return d.key; });
 
