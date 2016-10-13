@@ -1,0 +1,3 @@
+- A top of X municipalities
+- Range of years (given by municipalities data)
+- Tons of commodity (given by municipalities data)
