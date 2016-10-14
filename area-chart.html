@@ -15,62 +15,56 @@ body {
 
 </style>
 <body>
-<script src="//d3js.org/d3.v3.min.js"></script>
+<script src="//d3js.org/d3.v4.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 <script>
 
 
-var format = d3.time.format("%m/%d/%Y");
+// var parseTime = d3.timeParse("%m/%d/%Y");
+var parseTime = d3.timeParse("%Y");
 
-var margin = {top: 20, right: 30, bottom: 30, left: 40},
+var margin = {top: 20, right: 70, bottom: 30, left: 40},
     width = 960 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
 
-var x = d3.time.scale()
+var x = d3.scaleTime()
     .range([0, width]);
 
-var y = d3.scale.linear()
+var y = d3.scaleLinear()
     .range([height, 0]);
 
 // array of hexadecimal colors
-var z = d3.scale.category20c();
+var z = d3.schemeCategory20;
 
-var xAxis = d3.svg.axis()
+var xAxis = d3.axisBottom()
     .scale(x)
-    .orient("bottom")
-    .ticks(d3.time.years)
-    .tickFormat(d3.time.format('%Y'));
+    .ticks(d3.timeYears)
+    .tickFormat(d3.timeFormat('%Y'));
 
-var yAxis = d3.svg.axis()
-    .scale(y)
-    .orient("left");
+var yAxis = d3.axisLeft()
+    .scale(y);
 
-var stack = d3.layout.stack()
-    .offset("zero")
-    .values(function(d) { return d.values; })
-    // .order(function(d, i) {
-    //
-    //
-    //   // console.log(_.map(d, function(x, i) {
-    //   //   return d3.range(x[x.length - 1][1]);
-    //   // }));
-    //
-    //   // console.log(y);
-    //
-    //   // return d3.range(d[2][2][1]);
-    // })
-    .x(function(d) { return d.date; })
-    .y(function(d) { return d.quantity; })
+// var stack = d3.stack()
+//     .offset(d3.stackOffsetNone);
+    // .keys(function(d) { return d.name; })
+    // // .value(function(d) { return d.values; })
+    // .order(function(line) {
+    //   line.sort( function(a, b) {
+    //     let va = a[2][1];
+    //     let vb = b[2][1];
+    //     if (va > vb) {
+    //       return 1;
+    //     } else if (va < vb) {
+    //       return -1;
+    //     }
+    //     return 0;
+    //   } );
+    //   return d3.range(line.length);
+    // });
 
 var nest = d3.nest()
     .key(function(d) { return d.name; });
 
-
-var area = d3.svg.area()
-    .interpolate("linear")
-    .x(function(d) { return x(d.date); })
-    .y0(function(d) { return y(d.y0); })
-    .y1(function(d) { return y(d.y0 + d.y); });
 
 var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
@@ -78,36 +72,68 @@ var svg = d3.select("body").append("svg")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-d3.json("data.json", function(error, data) {
+d3.json("data2.json", function(error, data) {
   if (error) throw error;
 
-  var municipalities = data.municipalities;
+  // var municipalities = data.municipalities,
+  //   keys = Object.keys(data.municipalities[0]);
 
-  municipalities.forEach(function(d) {
-    d.date = format.parse(d.date)
-    d.quantity = +d.quantity;
-  });
+  var years = data.years;
+  var keys = data.metadata.map(municip => municip.id);
+  console.log(keys);
 
-  var layers = stack(nest.entries(municipalities));
 
-  x.domain(d3.extent(municipalities, function(d) { return d.date; }));
-  y.domain([0, d3.max(municipalities, function(d) { return d.y0 + d.y; })]);
+  // municipalities.forEach(function(d) {
+  //   d.date = parseTime(d.date)
+  //   d.quantity = +d.quantity;
+  // });
 
+  years.forEach(year => {
+    year.date = parseTime(year.year);
+  })
+
+  // axis domains
+  // x.domain(d3.extent(municipalities, function(d) { return d.date; }));
+  // y.domain([0, d3.max(municipalities, function(d) { return d.y0 + d.y; })]);
+
+  var stack = d3.stack()
+      .keys(keys)
+      .order(d3.stackOrderNone)
+      .offset(d3.stackOffsetNone)
+      // .value(function(d) {
+      //   return d.quantity;
+      // });
+
+  // var series = stack(municipalities);
+  var series = stack(years);
+  var area = d3.area()
+    .curve("linear")
+    .x(function(d)  { debugger; return x(d.date); })
+    .y0(function(d) { debugger; return y(d.y0); })
+    .y1(function(d) { debugger; return y(d.y0 + d.y); });
+
+  x.domain(d3.extent(years, function(d) { return d.date; }));
+  y.domain([0, d3.max(years, function(d) { return d.y0 + d.y; })]);
 
   var layersFrame = svg.selectAll('.layer-frame')
-    .data(layers)
-    .enter().append('g')
-      .attr('class', 'layer-frame');
+    .data(series)
+    .enter()
+    .append('g')
+    .attr('class', 'layer-frame');
+
 
   layersFrame.append("path")
     .attr("class", "layer-path")
-    .attr("d", function(d) { return area(d.values); })
-    .style("fill", function(d, i) { return z(i); });
+    .attr("d", function(d, i) {
+      debugger;
+      return area(d);
+    })
+    .style("fill", function(d, i) { return z[i]; });
 
   layersFrame.append('text')
     .attr("transform", function(d, i) {
-      var lastIndex = d.values.length - 1;
-      return "translate(" + x(d.values[lastIndex].date) + "," + y(d.values[lastIndex].y0 + d.values[lastIndex].y / 2) + ")";
+      var lastIndex = d.length - 1;
+      return "translate(" + x(d[lastIndex].date) + "," + y(d[lastIndex].y0 + d[lastIndex].y / 2) + ")";
     })
     .attr("x", 6)
     .attr("dy", ".35em")

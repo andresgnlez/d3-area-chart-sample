@@ -1,4 +1,14 @@
 {
+  "metadata": [
+    {
+      "name": "Querência",
+      "id": 1
+    },
+    {
+      "name": "Campo Novo",
+      "id": 2
+    }
+  ],
   "municipalities": [
     {
       "name": "Querência",
